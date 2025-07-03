@@ -3,24 +3,392 @@
 <head>
   <meta charset="UTF-8" />
   <title>Interactive 2-Year Job Survival Game</title>
-  <link rel="manifest" href="manifest.json" />
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js')
-          .then(reg => console.log('Service worker registered:', reg.scope))
-          .catch(err => console.log('Service worker error:', err));
-      });
-    }
-  </script>
   <style>
-    /* (Styles omitted here for brevity – full styles from user will be inserted in actual ZIP) */
+    body {
+      background: #111;
+      color: #00ffcc;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      margin: 0;
+      padding: 40px;
+      font-size: 1.3em;
+      user-select: none;
+    }
+    #game {
+      background: #222;
+      border-radius: 10px;
+      padding: 30px 40px;
+      max-width: 600px;
+      width: 100%;
+      box-sizing: border-box;
+      box-shadow: 0 0 20px #00ffcc66;
+    }
+    h2 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    #balance {
+      font-size: 2.3em;
+      font-weight: bold;
+      color: #00ff00;
+      margin-bottom: 30px;
+      text-align: center;
+      min-height: 50px;
+    }
+    .btn {
+      background: #00ffcc;
+      border: none;
+      border-radius: 6px;
+      color: #111;
+      font-weight: bold;
+      padding: 12px 20px;
+      cursor: pointer;
+      font-size: 1em;
+      margin: 10px 10px 0 0;
+      transition: background 0.3s;
+    }
+    .btn:hover {
+      background: #33ffdd;
+    }
+    #choices {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .choice-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #003333;
+      padding: 10px 20px;
+      border-radius: 6px;
+    }
+    .choice-label input[type="checkbox"] {
+      transform: scale(1.5);
+      cursor: pointer;
+    }
+    #message {
+      margin-top: 25px;
+      min-height: 60px;
+      text-align: center;
+      font-size: 1.2em;
+      font-weight: 600;
+      color: #ff4444;
+    }
+    #languageSelect {
+      background: #222;
+      color: #00ffcc;
+      border: none;
+      font-family: monospace;
+      font-size: 1.1em;
+      border-radius: 5px;
+      padding: 6px 10px;
+      margin-bottom: 20px;
+      cursor: pointer;
+      width: 160px;
+      user-select: none;
+    }
   </style>
 </head>
 <body>
-<!-- Game content goes here (omitted here for brevity) -->
+<div id="game">
+  <select id="languageSelect" aria-label="Select Language">
+    <option value="en">English</option>
+    <option value="es">Español</option>
+    <option value="pt">Português</option>
+  </select>
+
+  <h2 id="title">POV: You’re 18, working $18/hr (Part-Time) — Survive 2 Years</h2>
+  <div id="balance">$0.00</div>
+  <div id="screen"></div>
+  <div id="message"></div>
+</div>
+
 <script>
-  // Full game JavaScript from user will be inserted here
+(() => {
+  const langData = {
+    en: {
+      title: "POV: You’re 18, working $18/hr (Part-Time) — Survive 2 Years",
+      chooseLiving: "Choose where you live to start:",
+      liveWithParentsBtn: "🏠 Live with Parents",
+      moveOutBtn: "🏢 Move Out & Pay Rent",
+      chooseCar: "How do you plan to get to work?",
+      carpool: "🚗 Carpool in Family Car (Gas Only)",
+      usedCar: "🚙 Buy Used Car",
+      avgCar: "🚘 Buy Average Car",
+      newCar: "🚗 Buy New Car",
+      superCar: "🏎️ Buy Supercar",
+      monthLabel: "Month",
+      paycheck: "Paycheck received: +$",
+      fixedExpensesTitle: "Fixed Expenses",
+      optionalExpensesTitle: "Optional Purchases (Select what to buy)",
+      nextMonthBtn: "Next Month",
+      gameOverDebt: "💀 You went too deep into debt. Game over.",
+      endMsg: "🏁 2 Years Complete! Final Balance: $",
+      rankInvestor: "🏆 Rank: 💰 Investor Mindset — You played it smart and stacked up.",
+      rankSurvivor: "🥈 Rank: ✅ Survivor — You handled your money and stayed solid.",
+      rankBarely: "🥉 Rank: ⚠️ Barely Made It — You're alive but you gotta level up.",
+      rankBroke: "💀 Rank: ❌ Broke — You didn’t make it. Restart and rethink your money.",
+      balanceLabel: "Current Balance:",
+      bought: "🛍️ You bought:",
+      noOptional: "No optional purchases this month.",
+      chooseLangLabel: "Select Language"
+    },
+    es: {
+      title: "POV: Tienes 18 años, trabajas $18/hr (Medio tiempo) — Sobrevive 2 años",
+      chooseLiving: "Elige dónde vivir para comenzar:",
+      liveWithParentsBtn: "🏠 Vivir con padres",
+      moveOutBtn: "🏢 Mudarte y pagar renta",
+      chooseCar: "¿Cómo planeas llegar al trabajo?",
+      carpool: "🚗 Viajar en carro familiar (Solo pagas gasolina)",
+      usedCar: "🚙 Comprar carro usado",
+      avgCar: "🚘 Comprar carro promedio",
+      newCar: "🚗 Comprar carro nuevo",
+      superCar: "🏎️ Comprar supercarro",
+      monthLabel: "Mes",
+      paycheck: "Pago recibido: +$",
+      fixedExpensesTitle: "Gastos fijos",
+      optionalExpensesTitle: "Compras opcionales (Selecciona lo que quieras comprar)",
+      nextMonthBtn: "Siguiente mes",
+      gameOverDebt: "💀 Te endeudaste demasiado. Fin del juego.",
+      endMsg: "🏁 ¡2 años completos! Balance final: $",
+      rankInvestor: "🏆 Rango: 💰 Mentalidad de inversor — Jugaste inteligente y ahorraste.",
+      rankSurvivor: "🥈 Rango: ✅ Sobreviviente — Manejaste bien tu dinero.",
+      rankBarely: "🥉 Rango: ⚠️ Apenas lo lograste — Estás vivo pero debes mejorar.",
+      rankBroke: "💀 Rango: ❌ Sin dinero — No lo lograste. Reinicia y repiensa tu dinero.",
+      balanceLabel: "Balance actual:",
+      bought: "🛍️ Compraste:",
+      noOptional: "No hay compras opcionales este mes.",
+      chooseLangLabel: "Selecciona idioma"
+    },
+    pt: {
+      title: "POV: Você tem 18 anos, trabalha $18/hr (Meio período) — Sobreviva 2 anos",
+      chooseLiving: "Escolha onde morar para começar:",
+      liveWithParentsBtn: "🏠 Morar com os pais",
+      moveOutBtn: "🏢 Mudar-se e pagar aluguel",
+      chooseCar: "Como você vai para o trabalho?",
+      carpool: "🚗 Carona com a família (Apenas paga combustível)",
+      usedCar: "🚙 Comprar carro usado",
+      avgCar: "🚘 Comprar carro médio",
+      newCar: "🚗 Comprar carro novo",
+      superCar: "🏎️ Comprar supercarro",
+      monthLabel: "Mês",
+      paycheck: "Salário recebido: +$",
+      fixedExpensesTitle: "Despesas fixas",
+      optionalExpensesTitle: "Compras opcionais (Selecione o que deseja comprar)",
+      nextMonthBtn: "Próximo mês",
+      gameOverDebt: "💀 Você se endividou demais. Fim de jogo.",
+      endMsg: "🏁 2 anos completos! Saldo final: $",
+      rankInvestor: "🏆 Ranking: 💰 Mentalidade de Investidor — Jogou esperto e economizou.",
+      rankSurvivor: "🥈 Ranking: ✅ Sobrevivente — Controlou bem o dinheiro.",
+      rankBarely: "🥉 Ranking: ⚠️ Quase conseguiu — Está vivo, mas precisa melhorar.",
+      rankBroke: "💀 Ranking: ❌ Quebrou — Não conseguiu. Recomece e pense melhor.",
+      balanceLabel: "Saldo atual:",
+      bought: "🛍️ Você comprou:",
+      noOptional: "Nenhuma compra opcional este mês.",
+      chooseLangLabel: "Selecione o idioma"
+    }
+  };
+
+  const payPerMonth = 1750;
+  let balance = 0, month = 1, carChoice = null, liveWithParents = null, currentLang = "en";
+
+  const gameEl = document.getElementById("game");
+  const screenEl = document.getElementById("screen");
+  const balanceEl = document.getElementById("balance");
+  const titleEl = document.getElementById("title");
+  const languageSelect = document.getElementById("languageSelect");
+  const messageEl = document.getElementById("message");
+
+  const clickAudio = new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3");
+  const carAudio = new Audio("https://www.soundjay.com/transportation/sounds/car-starting-1.mp3");
+
+  function safePlay(audio) {
+    audio.pause();
+    audio.currentTime = 0;
+    audio.play().catch(() => { /* fail silently if no user interaction yet */ });
+  }
+
+  let baseExpenses = [], rentAndGroceries = [], optionalPurchases = [];
+
+  function playClick() { safePlay(clickAudio); }
+
+  function animateBalance(to) {
+    const from = balance, start = performance.now();
+    const animate = (time) => {
+      let p = (time - start) / 800;
+      if (p > 1) p = 1;
+      balanceEl.textContent = (from + (to - from) * p).toLocaleString("en", { style: "currency", currency: "USD" });
+      if (p < 1) requestAnimationFrame(animate); else balance = to;
+    };
+    requestAnimationFrame(animate);
+  }
+
+  function setupExpenses() {
+    const cars = {
+      carpool: { label: "🛢️ Gas Only", amount: 120 },
+      usedCar: { label: "🚙 Used Car (Loan)", amount: 200 },
+      avgCar: { label: "🚘 Avg Car (Loan)", amount: 400 },
+      newCar: { label: "🚗 New Car (Loan)", amount: 600 },
+      superCar: { label: "🏎️ Supercar", amount: 1200 }
+    };
+    baseExpenses = [
+      { label: "📱 Phone/Wi-Fi", amount: 80 },
+      { label: "🛞 Insurance", amount: 250 },
+      { label: "📄 Registration", amount: 20 },
+      cars[carChoice]
+    ];
+    rentAndGroceries = [
+      { label: "🏠 Shared Rent", amount: 600 },
+      { label: "🍔 Food & Groceries", amount: 200 }
+    ];
+    optionalPurchases = [
+      { label: "🍕 Dinner & Movies with Date", amount: 60 },
+      { label: "👕 New Clothes", amount: 100 },
+      { label: "🎮 Buy PS5 Game", amount: 70 },
+      { label: "📦 Random Amazon Order", amount: 50 },
+      { label: "📱 New Phone Upgrade", amount: 200 }
+    ];
+  }
+
+  function updateTexts() {
+    const d = langData[currentLang];
+    titleEl.textContent = d.title;
+    languageSelect.title = d.chooseLangLabel;
+    messageEl.textContent = "";
+  }
+
+  function chooseCarScreen() {
+    const d = langData[currentLang];
+    screenEl.innerHTML = 
+      <p>${d.chooseCar}</p>
+      <button class="btn" id="car1">${d.carpool}</button>
+      <button class="btn" id="car2">${d.usedCar}</button>
+      <button class="btn" id="car3">${d.avgCar}</button>
+      <button class="btn" id="car4">${d.newCar}</button>
+      <button class="btn" id="car5">${d.superCar}</button>
+    ;
+    document.querySelectorAll("button").forEach(btn => {
+      btn.onclick = () => {
+        playClick();
+        carChoice = {
+          car1: "carpool",
+          car2: "usedCar",
+          car3: "avgCar",
+          car4: "newCar",
+          car5: "superCar"
+        }[btn.id];
+        setupExpenses();
+        showChooseLiving();
+      };
+    });
+  }
+
+  function showChooseLiving() {
+    const d = langData[currentLang];
+    screenEl.innerHTML = 
+      <p>${d.chooseLiving}</p>
+      <button class="btn" id="btnLiveParents">${d.liveWithParentsBtn}</button>
+      <button class="btn" id="btnMoveOut">${d.moveOutBtn}</button>
+    ;
+    document.getElementById("btnLiveParents").onclick = () => { playClick(); liveWithParents = true; nextMonth(); };
+    document.getElementById("btnMoveOut").onclick = () => { playClick(); liveWithParents = false; nextMonth(); };
+  }
+
+  function nextMonth() {
+    const d = langData[currentLang];
+    if (month > 24) return showEndScreen();
+
+    let html = <h3>${d.monthLabel} ${month}</h3><p>${d.paycheck}${payPerMonth.toFixed(2)}</p>;
+    html += <h4>${d.fixedExpensesTitle}:</h4><ul> + baseExpenses.map(e => <li>${e.label}: -$${e.amount}</li>).join("") + "</ul>";
+
+    if (!liveWithParents) {
+      html += <h4>${d.fixedExpensesTitle} (Housing):</h4><ul> + rentAndGroceries.map(e => <li>${e.label}: -$${e.amount}</li>).join("") + "</ul>";
+    }
+
+    html += <h4>${d.optionalExpensesTitle}:</h4><div id="choices">;
+    optionalPurchases.forEach((opt, i) => {
+      html += <label class="choice-label"><span>${opt.label} (-$${opt.amount})</span><input type="checkbox" id="opt${i}"></label>;
+    });
+    html += </div><button class="btn" id="btnNextMonth">${d.nextMonthBtn}</button>;
+    screenEl.innerHTML = html;
+
+    document.getElementById("btnNextMonth").onclick = () => { playClick(); processMonth(); };
+  }
+
+  function processMonth() {
+    const d = langData[currentLang];
+
+    // Step 1: Add paycheck & animate
+    const paycheckAmount = balance + payPerMonth;
+    animateBalance(paycheckAmount);
+
+    setTimeout(() => {
+      balance = paycheckAmount; // Apply paycheck before expenses
+
+      // Step 2: Calculate fixed expenses
+      let total = baseExpenses.reduce((a, b) => a + b.amount, 0);
+      if (!liveWithParents) {
+        total += rentAndGroceries.reduce((a, b) => a + b.amount, 0);
+      }
+
+      // Step 3: Deduct optional purchases
+      let newBal = balance - total;
+      const bought = optionalPurchases.filter((_, i) => {
+        const checkbox = document.getElementById(opt${i});
+        return checkbox && checkbox.checked;
+      });
+      bought.forEach(item => newBal -= item.amount);
+
+      // Step 4: Animate new balance after expenses
+      animateBalance(newBal);
+      messageEl.textContent = bought.length
+        ? ${d.bought} ${bought.map(b => b.label).join(", ")}
+        : d.noOptional;
+
+      safePlay(carAudio);
+
+      setTimeout(() => {
+        balance = newBal;
+        if (balance < -1000) {
+          messageEl.textContent = d.gameOverDebt;
+          balanceEl.style.color = "#ff4444";
+        } else {
+          month++;
+          nextMonth();
+        }
+      }, 1300);
+    }, 800);
+  }
+
+  function showEndScreen() {
+    const d = langData[currentLang];
+    const rank = balance > 10000 ? d.rankInvestor : balance > 3000 ? d.rankSurvivor : balance >= 0 ? d.rankBarely : d.rankBroke;
+    screenEl.innerHTML = <h3>${d.endMsg}${balance.toFixed(2)}</h3><p style="font-weight:bold; font-size:1.3em;">${rank}</p><button class="btn" id="btnRestart">Restart Game</button>;
+    balanceEl.style.color = "#00ff00";
+    messageEl.textContent = "";
+    document.getElementById("btnRestart").onclick = () => { playClick(); resetGame(); };
+  }
+
+  function resetGame() {
+    balance = 0; month = 1; liveWithParents = null; carChoice = null;
+    balanceEl.textContent = "$0.00"; messageEl.textContent = ""; balanceEl.style.color = "#00ff00";
+    chooseCarScreen();
+  }
+
+  languageSelect.onchange = e => {
+    currentLang = e.target.value;
+    updateTexts(); resetGame();
+  };
+
+  updateTexts(); resetGame();
+})();
 </script>
 </body>
 </html>
