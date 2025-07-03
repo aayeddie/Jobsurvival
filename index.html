@@ -97,20 +97,20 @@
   </style>
 </head>
 <body>
-<div id="game">
-  <select id="languageSelect" aria-label="Select Language">
-    <option value="en">English</option>
-    <option value="es">Español</option>
-    <option value="pt">Português</option>
-  </select>
+  <div id="game">
+    <select id="languageSelect" aria-label="Select Language">
+      <option value="en">English</option>
+      <option value="es">Español</option>
+      <option value="pt">Português</option>
+    </select>
 
-  <h2 id="title">POV: You’re 18, working $18/hr (Part-Time) — Survive 2 Years</h2>
-  <div id="balance">$0.00</div>
-  <div id="screen"></div>
-  <div id="message"></div>
-</div>
+    <h2 id="title">POV: You’re 18, working $18/hr (Part-Time) — Survive 2 Years</h2>
+    <div id="balance">$0.00</div>
+    <div id="screen"></div>
+    <div id="message"></div>
+  </div>
 
-<script>
+  <script>
 (() => {
   const langData = {
     en: {
@@ -206,18 +206,10 @@
   const languageSelect = document.getElementById("languageSelect");
   const messageEl = document.getElementById("message");
 
-  const clickAudio = new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3");
-  const carAudio = new Audio("https://www.soundjay.com/transportation/sounds/car-starting-1.mp3");
-
-  function safePlay(audio) {
-    audio.pause();
-    audio.currentTime = 0;
-    audio.play().catch(() => { /* fail silently if no user interaction yet */ });
-  }
+  function playClick() {} // No sound
+  function safePlay(_) {}
 
   let baseExpenses = [], rentAndGroceries = [], optionalPurchases = [];
-
-  function playClick() { safePlay(clickAudio); }
 
   function animateBalance(to) {
     const from = balance, start = performance.now();
@@ -266,14 +258,14 @@
 
   function chooseCarScreen() {
     const d = langData[currentLang];
-    screenEl.innerHTML = 
+    screenEl.innerHTML = `
       <p>${d.chooseCar}</p>
       <button class="btn" id="car1">${d.carpool}</button>
       <button class="btn" id="car2">${d.usedCar}</button>
       <button class="btn" id="car3">${d.avgCar}</button>
       <button class="btn" id="car4">${d.newCar}</button>
       <button class="btn" id="car5">${d.superCar}</button>
-    ;
+    `;
     document.querySelectorAll("button").forEach(btn => {
       btn.onclick = () => {
         playClick();
@@ -292,11 +284,11 @@
 
   function showChooseLiving() {
     const d = langData[currentLang];
-    screenEl.innerHTML = 
+    screenEl.innerHTML = `
       <p>${d.chooseLiving}</p>
       <button class="btn" id="btnLiveParents">${d.liveWithParentsBtn}</button>
       <button class="btn" id="btnMoveOut">${d.moveOutBtn}</button>
-    ;
+    `;
     document.getElementById("btnLiveParents").onclick = () => { playClick(); liveWithParents = true; nextMonth(); };
     document.getElementById("btnMoveOut").onclick = () => { playClick(); liveWithParents = false; nextMonth(); };
   }
@@ -305,18 +297,18 @@
     const d = langData[currentLang];
     if (month > 24) return showEndScreen();
 
-    let html = <h3>${d.monthLabel} ${month}</h3><p>${d.paycheck}${payPerMonth.toFixed(2)}</p>;
-    html += <h4>${d.fixedExpensesTitle}:</h4><ul> + baseExpenses.map(e => <li>${e.label}: -$${e.amount}</li>).join("") + "</ul>";
+    let html = `<h3>${d.monthLabel} ${month}</h3><p>${d.paycheck}${payPerMonth.toFixed(2)}</p>`;
+    html += `<h4>${d.fixedExpensesTitle}:</h4><ul>` + baseExpenses.map(e => `<li>${e.label}: -$${e.amount}</li>`).join("") + "</ul>";
 
     if (!liveWithParents) {
-      html += <h4>${d.fixedExpensesTitle} (Housing):</h4><ul> + rentAndGroceries.map(e => <li>${e.label}: -$${e.amount}</li>).join("") + "</ul>";
+      html += `<h4>${d.fixedExpensesTitle} (Housing):</h4><ul>` + rentAndGroceries.map(e => `<li>${e.label}: -$${e.amount}</li>`).join("") + "</ul>";
     }
 
-    html += <h4>${d.optionalExpensesTitle}:</h4><div id="choices">;
+    html += `<h4>${d.optionalExpensesTitle}:</h4><div id="choices">`;
     optionalPurchases.forEach((opt, i) => {
-      html += <label class="choice-label"><span>${opt.label} (-$${opt.amount})</span><input type="checkbox" id="opt${i}"></label>;
+      html += `<label class="choice-label"><span>${opt.label} (-$${opt.amount})</span><input type="checkbox" id="opt${i}"></label>`;
     });
-    html += </div><button class="btn" id="btnNextMonth">${d.nextMonthBtn}</button>;
+    html += `</div><button class="btn" id="btnNextMonth">${d.nextMonthBtn}</button>`;
     screenEl.innerHTML = html;
 
     document.getElementById("btnNextMonth").onclick = () => { playClick(); processMonth(); };
@@ -324,35 +316,27 @@
 
   function processMonth() {
     const d = langData[currentLang];
-
-    // Step 1: Add paycheck & animate
     const paycheckAmount = balance + payPerMonth;
     animateBalance(paycheckAmount);
 
     setTimeout(() => {
-      balance = paycheckAmount; // Apply paycheck before expenses
-
-      // Step 2: Calculate fixed expenses
+      balance = paycheckAmount;
       let total = baseExpenses.reduce((a, b) => a + b.amount, 0);
       if (!liveWithParents) {
         total += rentAndGroceries.reduce((a, b) => a + b.amount, 0);
       }
 
-      // Step 3: Deduct optional purchases
       let newBal = balance - total;
       const bought = optionalPurchases.filter((_, i) => {
-        const checkbox = document.getElementById(opt${i});
+        const checkbox = document.getElementById(`opt${i}`);
         return checkbox && checkbox.checked;
       });
       bought.forEach(item => newBal -= item.amount);
 
-      // Step 4: Animate new balance after expenses
       animateBalance(newBal);
       messageEl.textContent = bought.length
-        ? ${d.bought} ${bought.map(b => b.label).join(", ")}
+        ? `${d.bought} ${bought.map(b => b.label).join(", ")}`
         : d.noOptional;
-
-      safePlay(carAudio);
 
       setTimeout(() => {
         balance = newBal;
@@ -370,7 +354,7 @@
   function showEndScreen() {
     const d = langData[currentLang];
     const rank = balance > 10000 ? d.rankInvestor : balance > 3000 ? d.rankSurvivor : balance >= 0 ? d.rankBarely : d.rankBroke;
-    screenEl.innerHTML = <h3>${d.endMsg}${balance.toFixed(2)}</h3><p style="font-weight:bold; font-size:1.3em;">${rank}</p><button class="btn" id="btnRestart">Restart Game</button>;
+    screenEl.innerHTML = `<h3>${d.endMsg}${balance.toFixed(2)}</h3><p style="font-weight:bold; font-size:1.3em;">${rank}</p><button class="btn" id="btnRestart">Restart Game</button>`;
     balanceEl.style.color = "#00ff00";
     messageEl.textContent = "";
     document.getElementById("btnRestart").onclick = () => { playClick(); resetGame(); };
@@ -389,6 +373,6 @@
 
   updateTexts(); resetGame();
 })();
-</script>
+  </script>
 </body>
 </html>
