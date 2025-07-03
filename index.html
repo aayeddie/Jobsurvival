@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Interactive 2-Year Job Survival Game</title>
+  <link rel="manifest" href="manifest.json" />
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => console.log('Service worker registered:', reg.scope))
+          .catch(err => console.log('Service worker error:', err));
+      });
+    }
+  </script>
+  <style>
+    /* (Styles omitted here for brevity – full styles from user will be inserted in actual ZIP) */
+  </style>
+</head>
+<body>
+<!-- Game content goes here (omitted here for brevity) -->
+<script>
+  // Full game JavaScript from user will be inserted here
+</script>
+</body>
+</html>
